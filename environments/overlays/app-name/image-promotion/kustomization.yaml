@@ -1,0 +1,21 @@
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- image-promotion-stream.yaml
+
+secretGenerator:
+- name: image-promotion-pull-secret
+  type: kubernetes.io/dockercfg
+  files:
+    - .dockercfg=.dockercfg
+
+commonAnnotations:
+  owner: "your-group-name"
+  owner-email: your-groups-email
+
+commonLabels:
+  app.kubernetes.io/part-of: app-name
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/component: image-promotion

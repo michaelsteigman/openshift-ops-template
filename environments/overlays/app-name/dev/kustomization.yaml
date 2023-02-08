@@ -1,0 +1,88 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Define namespace to ensure resources are not applied incorrectly.
+namespace: your-project-label-dev
+
+commonLabels:
+  environment: dev
+
+
+# Include common resources plus the build. We only create the build in dev env.
+resources:
+- ../common
+- ../../../bases/components/builds/app-name
+
+# Specify which tag to deploy. This will be different in each environment:
+#  - latest (dev)
+#  - stage (stage)
+#  - prod (prod)
+images:
+- name: app-name
+  newTag: latest
+
+# Merge environment-specific variables into the config from the app-name directory.
+configMapGenerator:
+- name: app-server-config
+  behavior: merge
+  literals:
+  - DEBUG=1
+#  - ANOTHER_VARIABLE=2
+
+# Merge PG user into the database config and create the secret containing user's password.
+- name: postgresql-config
+  behavior: merge
+  literals:
+  - POSTGRESQL_USER=user234
+
+secretGenerator:
+- name: postgresql-secrets
+  type: Opaque
+  envs:
+  - postgresql-secrets.env
+
+
+patches:
+
+# To enable custom domains and certificates, set up your cert secret in bases/components/tls
+# and then uncomment the patch below, ensuring domain matches what's in `Ingress`.
+
+# - target:
+#     version: v1
+#     kind: Ingress
+#     name: nginx
+#   patch: |-
+#     - op: replace
+#       path: /spec/tls/0/hosts/0
+#       value: app-domain
+#     - op: add
+#       path: /spec/rules/0/host
+#       value: app-domain
+
+# The patches below will set deployment triggers on the Django app and migration containers. 
+# When the deployed tag is updated, the new image will roll out automatically.
+# If you enable Celery, uncomment the second and third targets.
+- target:
+    version: v1
+    kind: Deployment
+    name: django
+  patch: |-
+    - op: add
+      path: /metadata/annotations/image.openshift.io~1triggers
+      value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"django\")].image"},{"from":{"kind":"ImageStreamTag","name":"app-name:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"django-migrations\")].image"}]'
+# - target:
+#     version: v1
+#     kind: Deployment
+#     name: celery-worker
+#   patch: |-
+#     - op: add
+#       path: /metadata/annotations/image.openshift.io~1triggers
+#       value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"celery-worker\")].image"}]'
+# - target:
+#     version: v1
+#     kind: Deployment
+#     name: celery-beat
+#   patch: |-
+#     - op: add
+#       path: /metadata/annotations/image.openshift.io~1triggers
+#       value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"celery-beat\")].image"}]'

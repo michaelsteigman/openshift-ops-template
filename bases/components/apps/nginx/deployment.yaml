@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - $STI_SCRIPTS_PATH/run
+        env:
+        - name: TZ
+          value: US/Eastern
+        image: image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.16-el8
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+            httpHeaders:
+              - name: Host
+                value: health.partners.org
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+            httpHeaders:
+              - name: Host
+                value: health.partners.org
+        name: nginx
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /opt/app-root/etc/nginx.d/
+          name: config
+          readOnly: true
+        - mountPath: /opt/app-root/src/site_media/media/
+          name: uploads
+          readOnly: true
+        restartPolicy: Always
+      volumes:
+      - name: config
+        configMap:
+          name: nginx-config
+          defaultMode: 420
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads
+  

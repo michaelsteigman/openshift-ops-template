@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    tier: frontend
+    app.kubernetes.io/name: django
+    app.kubernetes.io/component: app-server
+  name: django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: frontend
+      app.kubernetes.io/name: django
+      app.kubernetes.io/component: app-server
+  template:
+    metadata:
+      labels:
+        tier: frontend
+        app.kubernetes.io/name: django
+        app.kubernetes.io/component: app-server
+    spec:
+      initContainers:
+        - envFrom:
+          - configMapRef:
+              name: app-server-config
+          - configMapRef:
+              name: postgresql-config
+          - secretRef:
+              name: postgresql-secrets
+          - secretRef:
+              name: app-server-secrets
+          name: django-migrations
+          image: app-name
+          imagePullPolicy: Always
+          command:
+            - /scripts/migrate.sh
+          volumeMounts:
+          - mountPath: /scripts
+            name: migration-script
+      containers:
+        - envFrom:
+          - configMapRef:
+              name: app-server-config
+          - configMapRef:
+              name: postgresql-config
+          - secretRef:
+              name: postgresql-secrets
+          - secretRef:
+              name: app-server-secrets
+          image: app-name
+          imagePullPolicy: Always
+          name: django
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+              httpHeaders:
+              - name: Host
+                value: health.partners.org
+            initialDelaySeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+              httpHeaders:
+              - name: Host
+                value: health.partners.org
+            initialDelaySeconds: 10
+          volumeMounts:
+          - mountPath: /opt/app-root/src/media
+            name: uploads
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads
+      - name: migration-script
+        configMap:
+          name: migration-script
+          defaultMode: 0755
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: celery-worker
+#   labels:
+#     tier: middleware
+#     app.kubernetes.io/name: worker
+#     app.kubernetes.io/component: celery
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       tier: middleware
+#       app.kubernetes.io/name: worker
+#       app.kubernetes.io/component: celery
+#   template:
+#     metadata:
+#       labels:
+#         tier: middleware
+#         app.kubernetes.io/name: worker
+#         app.kubernetes.io/component: celery
+#     spec:
+#       containers:
+#       - command:
+#         - /bin/sh
+#         - -c
+#         - celery -A app-name worker -l info
+#         envFrom:
+#         - configMapRef: 
+#             name: app-server-config
+#         - configMapRef:
+#             name: postgresql-config
+#         - secretRef:
+#             name: postgresql-secrets
+#         - secretRef:
+#             name: app-server-secrets
+#         image: app-name
+#         imagePullPolicy: Always
+#         name: celery-worker
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: celery-beat
+#   labels:
+#     tier: middleware
+#     app.kubernetes.io/name: scheduler
+#     app.kubernetes.io/component: celery
+# spec:
+#   strategy:
+#     type: Recreate
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       tier: middleware
+#       app.kubernetes.io/name: scheduler
+#       app.kubernetes.io/component: celery
+#   template:
+#     metadata:
+#       labels:
+#         tier: middleware
+#         app.kubernetes.io/name: scheduler
+#         app.kubernetes.io/component: celery
+#     spec:
+#       containers:
+#       - command:
+#         - /bin/sh
+#         - -c
+#         - celery -A app-name beat -l info
+#         envFrom:
+#         - configMapRef:
+#             name: app-server-config
+#         - configMapRef:
+#             name: postgresql-config
+#         - secretRef:
+#             name: postgresql-secrets
+#         - secretRef:
+#             name: app-server-secrets
+#         image: app-name
+#         imagePullPolicy: Always
+#         name: celery-beat
+# ---

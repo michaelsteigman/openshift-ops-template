@@ -1,0 +1,27 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: builder-image
+spec:
+  successfulBuildsHistoryLimit: 3
+  failedBuildsHistoryLimit: 2
+  output:
+    to:
+      kind: ImageStreamTag
+      name: builder-image:latest
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM python:3.8-ubi8:latest
+      RUN yum -y install xmlsec1 && yum -y clean all  && rm -rf /var/cache    
+  strategy:
+    type: Docker
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: builder-image
+spec:
+  lookupPolicy:
+    local: true
+---

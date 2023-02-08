@@ -1,0 +1,84 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: your-project-label-stage
+
+commonLabels:
+  environment: stage
+
+# In the stage and prod environments, we need the image promotion bits (but not the build...)
+resources:
+- ../common
+- ../image-promotion
+
+images:
+- name: app-name
+  newTag: stage
+
+configMapGenerator:
+- name: app-server-config
+  behavior: merge
+  literals:
+  - STAGE_ENVIRONMENT_VARIABLE=bar
+
+- name: postgresql-config
+  behavior: merge
+  literals:
+  - POSTGRESQL_USER=user123
+
+secretGenerator:
+- name: postgresql-secrets
+  type: Opaque
+  envs:
+  - postgresql-secrets.env
+
+# This patch will tweak the images used for app deployment to track the `stage` tag in the dev environment.
+patches:
+- target:
+    version: v1
+    kind: ImageStream
+    name: app-name
+  patch: |-
+    - op: add
+      path: /spec/tags/0/name
+      value: stage
+    - op: add
+      path: /spec/tags/0/from/name
+      value: default-route-openshift-image-registry.apps.dev-shared-aro-e2.partners.org/your-project-label-dev/app-name:stage
+
+# - target:
+#     version: v1
+#     kind: Ingress
+#     name: nginx
+#   patch: |-
+#     - op: replace
+#       path: /spec/tls/0/hosts/0
+#       value: app-domain
+#     - op: add
+#       path: /spec/rules/0/host
+#       value: app-domain
+
+- target:
+    version: v1
+    kind: Deployment
+    name: django
+  patch: |-
+    - op: add
+      path: /metadata/annotations/image.openshift.io~1triggers
+      value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:stage"},"fieldPath":"spec.template.spec.containers[?(@.name==\"django\")].image"},{"from":{"kind":"ImageStreamTag","name":"app-name:stage"},"fieldPath":"spec.template.spec.containers[?(@.name==\"django-migrations\")].image"}]'
+# - target:
+#     version: v1
+#     kind: Deployment
+#     name: celery-worker
+#   patch: |-
+#     - op: add
+#       path: /metadata/annotations/image.openshift.io~1triggers
+#       value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:stage"},"fieldPath":"spec.template.spec.containers[?(@.name==\"celery-worker\")].image"}]'
+# - target:
+#     version: v1
+#     kind: Deployment
+#     name: celery-beat
+#   patch: |-
+#     - op: add
+#       path: /metadata/annotations/image.openshift.io~1triggers
+#       value: '[{"from":{"kind":"ImageStreamTag","name":"app-name:stage"},"fieldPath":"spec.template.spec.containers[?(@.name==\"celery-beat\")].image"}]'

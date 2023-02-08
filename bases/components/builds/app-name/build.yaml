@@ -1,0 +1,44 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: app-name
+spec:
+  successfulBuildsHistoryLimit: 3
+  failedBuildsHistoryLimit: 2
+  output:
+    to:
+      kind: ImageStreamTag
+      name: app-name:latest
+  source:
+    git:
+      uri: git-uri
+    # See kustomization.yaml in this directory for instructions on enabling builds from 
+    # a private repo. Uncomment this once the deploy key is set up.
+    # sourceSecret:
+    #   name: github-deploy-key
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: python:3.8-ubi8
+        namespace: openshift
+      env:
+      - name: UPGRADE_PIP_TO_LATEST
+        value: "1"
+      - name: LANG
+        value: en_US.UTF-8
+      - name: LANGUAGE
+        value: en_US:en
+      - name: ENABLE_MICROPIPENV
+        value: "1"
+    type: Source
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: app-name
+spec:
+  lookupPolicy:
+    local: true
+---

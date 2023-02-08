@@ -1,0 +1,1 @@
+Sample deployment for a `CronJob`. Use this deployment as a starting point if you need to run a Python app image to do some work periodically.

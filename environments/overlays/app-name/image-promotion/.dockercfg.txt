@@ -1,0 +1,8 @@
+{
+    "default-route-openshift-image-registry.apps.dev-shared-aro-e2.partners.org": {
+        "username": "serviceaccount",
+        "password": "password goes here",
+        "email": "serviceaccount@example.org",
+        "auth": "token goes here"
+    }
+}

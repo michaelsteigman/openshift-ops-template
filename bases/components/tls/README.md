@@ -1,0 +1,1 @@
+To generate secrets for your custom domain certificates, uncomment the `secretGenerator` section in the kustomization file and ensure you have the key and cert in the correct subfolder. Next, uncomment the tls resource reference in the environments/overlays/common kustomization file.

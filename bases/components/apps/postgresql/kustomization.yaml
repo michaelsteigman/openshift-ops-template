@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- pvcs.yaml
+- deployment.yaml
+- service.yaml
+- backup.yaml
+
+configMapGenerator:
+- name: postgresql-config
+  literals:
+  - DATABASE_SERVICE_NAME=postgresql
+  - POSTGRESQL_DATABASE=app-name
+  - TZ=US/Eastern
+
+- name: backup-script
+  files:
+  - backup.sh
+
+commonLabels:
+  tier: backend
+  app.kubernetes.io/component: database
+

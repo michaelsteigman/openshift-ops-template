@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql
+  labels:
+    app.kubernetes.io/name: postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+    spec:
+      containers:
+        - envFrom:
+          - configMapRef:
+              name: postgresql-config
+          - secretRef:
+              name: postgresql-secrets
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 5432
+            timeoutSeconds: 1
+          name: postgresql
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+                'SELECT 1'
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 512Mi
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: data
+          - mountPath: /var/lib/pgsql/backups
+            name: backup
+          image: image-registry.openshift-image-registry.svc:5000/openshift/postgresql:9.6-el8
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: postgresql
+      - name: backup
+        persistentVolumeClaim:
+          claimName: postgresql-backup

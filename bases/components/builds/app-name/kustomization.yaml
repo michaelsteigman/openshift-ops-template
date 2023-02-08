@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- build.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+# If you have a private repository, generate a deploy key, save it in ssh-privatekey 
+# in this directory and uncomment the generator below. Also uncomment the deploy-key 
+# section in build.yaml in this directory.
+
+# For more information on deploy keys:
+# * Github - https://docs.github.com/en/developers/overview/managing-deploy-keys#deploy-keys
+# * Gitlab - https://docs.gitlab.com/ee/user/project/deploy_keys/#create-a-project-deploy-key
+
+# secretGenerator:
+# - name: github-deploy-key
+#   files:
+#   - ssh-privatekey
+#   type: Opaque
+
+commonLabels:
+  app.kubernetes.io/part-of: app-name
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/component: build

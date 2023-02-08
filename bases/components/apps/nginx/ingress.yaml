@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Remove this annotation if you have a custom domain certificates.
+  annotations:
+    route.openshift.io/termination: edge
+  name: nginx
+spec:
+
+  # Uncomment for custom domain certificate support and remove annotation above ^.
+  # tls:
+  # - hosts:
+  #     - app-domain (must match a `host` in rules below)
+  #   secretName: app-name-tls-secret
+  rules:
+  - host: app-domain
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific      
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 8080
+

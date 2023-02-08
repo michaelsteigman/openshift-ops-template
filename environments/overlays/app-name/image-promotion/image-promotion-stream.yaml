@@ -1,0 +1,14 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: hublms
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - from:
+        kind: DockerImage
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local

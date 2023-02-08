@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/name: postgresql-backup
+  name: postgresql-backup
+spec:
+  # Backup the database every day at 2AM
+  schedule: "0 2 * * *"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql-backup
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql-backup
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: postgresql-backup
+        spec:
+          containers:
+          - name: postgresql-backup
+            image: image-registry.openshift-image-registry.svc:5000/openshift/postgresql:9.6-el8
+            command:
+            - /scripts/backup.sh
+            envFrom:
+            - configMapRef:
+                name: postgresql-config
+            - secretRef:
+                name: postgresql-secrets
+            volumeMounts:
+            - name: postgresql-backup
+              mountPath: /var/lib/pgsql/backups
+            - name: backup-script
+              mountPath: /scripts
+          restartPolicy: Never
+          volumes:
+          - name: postgresql-backup
+            persistentVolumeClaim:
+              claimName: postgresql-backup
+          - name: backup-script
+            configMap:
+              name: backup-script
+              defaultMode: 0755

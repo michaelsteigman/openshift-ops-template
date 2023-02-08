@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/name: job-name
+  name: job-name
+spec:
+  # run this job every day at noon
+  schedule: "0 12 * * *"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: job-name
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: job-name
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: job-name
+        spec:
+          containers:
+          - name: job-name
+            image: job-name:latest
+            command:
+            - python3 -m path/to/your/module.py
+            envFrom:
+            - configMapRef:
+                name: postgresql-config
+            - secretRef:
+                name: postgresql-secrets
+            volumeMounts:
+            - name: job-name
+              mountPath: /opt/app-root/src/job-name/data
+          restartPolicy: Never
+          volumes:
+          - name: job-name
+            persistentVolumeClaim:
+              claimName: job-name

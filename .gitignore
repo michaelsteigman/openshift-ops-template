@@ -1,0 +1,5 @@
+**/*secret*
+**/*key*
+**/*.env
+**/.dockercfg
+**/certs/**
